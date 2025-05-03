@@ -1,2 +1,2 @@
-# sbd360_client_template
-sbd360_client_template
+#tenergy32hub_template
+tenergy32hub_template
