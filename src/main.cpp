@@ -13,6 +13,7 @@
 #include <Arduino.h>
 #include <tenergy32hub.h>
 #include <esp_task_wdt.h>
+#include <esp_system.h> // สำหรับ esp_read_mac
 
 /**************************************/
 /*          Firmware Version          */
@@ -61,9 +62,26 @@ Tenergy32Hub mcu;
 /*        define global variable      */
 /**************************************/
 
+// ตัวแปรสำหรับเก็บชื่อ unitName
+String unitName = "";
+
 /**************************************/
 /*           define function          */
 /**************************************/
+
+/***********************************************************************
+ * FUNCTION:    getUnitNameFromMac
+ * DESCRIPTION: สร้างชื่อ unitName จาก MAC Address (6 ตัวหลัง)
+ * RETURNED:    String ชื่อบอร์ด tenergy32hub-xxxxxx
+ ***********************************************************************/
+String getUnitNameFromMac()
+{
+    uint8_t mac[6];
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    char macStr[7];
+    snprintf(macStr, sizeof(macStr), "%02X%02X%02X", mac[3], mac[4], mac[5]);
+    return "tenergy32hub-" + String(macStr);
+}
 
 /***********************************************************************
  * FUNCTION:    setup
@@ -76,13 +94,21 @@ void setup()
     // Initialize serial communication and print the header
     Serial.begin(115200);
     header_print();
-    
+
     // Initialize and enable the watchdog with a 10-second timeout.
-    esp_task_wdt_init(WDT_TIMEOUT, true);  // true resets the CPU on WDT timeout
-    esp_task_wdt_add(NULL);                // Add current task to watchdog monitoring
+    esp_task_wdt_init(WDT_TIMEOUT, true); // true resets the CPU on WDT timeout
+    esp_task_wdt_add(NULL);               // Add current task to watchdog monitoring
 
     mcu.begin();
     mcu.displayOLEDInfo();
+    vTaskDelay(1000);
+    
+    // สร้าง unitName จาก MAC Address
+    unitName = getUnitNameFromMac();
+
+    // แสดงชื่อ unitName บน Serial และ OLED
+    Serial.printf("unitName: %s\r\n", unitName.c_str());
+    mcu.displayOLED(unitName.c_str());
 }
 
 /***********************************************************************
@@ -93,58 +119,7 @@ void setup()
  ***********************************************************************/
 void loop()
 {
-    int16_t raw = mcu.readPotentiometer();
-    float voltage = raw * (5.0 / 32767.0);
-    
-    Serial.printf("potentiometer = %d\r\n", raw);
-    Serial.printf("Voltage = %.2f V\r\n", voltage);
-    
-    // Display four lines on the OLED
-    mcu.displayOLEDLines(
-        ("potentiometer = " + String(raw)).c_str(),
-        ("Voltage = " + String(voltage) + " V").c_str(),
-        ("AIN0 = " + String(mcu.readADCChannel(0))).c_str(),
-        ("AIN3 = " + String(mcu.readADCChannel(3))).c_str()
-    );
-    
-    if(mcu.readSW1())
-    {
-        Serial.println("SW1 pressed");
-        mcu.displayOLEDLines("SW1 pressed", "SW2 not pressed");
-        mcu.marioSound();
-        mcu.setRedLED(true);
-        mcu.setBlueLED(false);
-        mcu.setbuildingLED(true);
-        mcu.blinkBlueLED(1000);
-        mcu.blinkbuildingLED(500);
-        mcu.blinkRedLED(300);
-    }
-    else if(mcu.readSW2())
-    {
-        Serial.println("SW2 pressed");
-        mcu.displayOLEDLines("SW2 pressed", "SW1 not pressed");
-        mcu.angryBirdSound();
-        mcu.setRedLED(false);
-        mcu.setBlueLED(true);
-        mcu.setbuildingLED(false);
-        mcu.blinkBlueLED(0);
-        mcu.blinkbuildingLED(0);
-        mcu.blinkRedLED(0);
-    }
-
-    if(mcu.readSlideSwitch())
-    {
-       mcu.setRelay(true);
-       Serial.println("Slide switch ON");
-    }
-    else
-    {
-       mcu.setRelay(false);
-       Serial.println("Slide switch OFF");
-    }
-   
-
+    // ไม่ต้องส่ง LoRa
     esp_task_wdt_reset();
     vTaskDelay(1000);
 }
-
