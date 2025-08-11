@@ -1,4 +1,3 @@
-
 #!/bin/bash
 echo "Cloning repositories..."
 
