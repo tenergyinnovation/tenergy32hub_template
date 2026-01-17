@@ -4,8 +4,9 @@
  * Hardware     :     tenergy32hub
  * Author       :     Tenergy Innovation Co., Ltd.
  * Date         :     27/04/2025
- * Revision     :     1.0
+ * Revision     :     1.1
  * Rev1.0       :     Original
+ * Rev1.1       :     mcu.begin() with USER_LORA option [2026-01-17]
  * website      :     http://www.tenergyinnovation.co.th
  * Email        :     uten.boonliam@tenergyinnovation.co.th
  * TEL          :     +66 89-140-7205
@@ -18,7 +19,7 @@
 /**************************************/
 /*          Firmware Version          */
 /**************************************/
-String version = "0.1";
+String version = "1.1";
 
 /**************************************/
 /*          Header project            */
@@ -91,17 +92,20 @@ String getUnitNameFromMac()
  ***********************************************************************/
 void setup()
 {
-    // Initialize serial communication and print the header
+  // Initialize serial communication and print the header
     Serial.begin(115200);
     header_print();
+
+    // Initialize with LoRa support (both ADS1115 and LoRa)
+    // Options: USER_NONE (0), USER_ADS1115 (1), USER_LORA (2), USER_ADS1115_LORA (3)
+    mcu.begin(USER_LORA);  // Initialize with LoRa only
+    mcu.displayOLEDInfo();
+    vTaskDelay(1000);
 
     // Initialize and enable the watchdog with a 10-second timeout.
     esp_task_wdt_init(WDT_TIMEOUT, true); // true resets the CPU on WDT timeout
     esp_task_wdt_add(NULL);               // Add current task to watchdog monitoring
 
-    mcu.begin();
-    mcu.displayOLEDInfo();
-    vTaskDelay(1000);
     
     // สร้าง unitName จาก MAC Address
     unitName = getUnitNameFromMac();
